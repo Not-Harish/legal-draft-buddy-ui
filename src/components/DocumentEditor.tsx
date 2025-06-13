@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 
 export function DocumentEditor() {
@@ -20,7 +19,13 @@ export function DocumentEditor() {
 
       {/* Document Content */}
       <div className="flex-1 overflow-y-auto">
-        <div className="p-8 max-w-none prose prose-slate">
+        <div 
+          className="p-8 max-w-none prose prose-slate focus:outline-none"
+          contentEditable
+          suppressContentEditableWarning={true}
+          onFocus={() => setIsEditing(true)}
+          onBlur={() => setIsEditing(false)}
+        >
           <div className="space-y-6">
             <div className="text-center mb-8">
               <h1 className="text-2xl font-bold text-slate-800 mb-2">RESIDENTIAL RENTAL AGREEMENT</h1>
