@@ -9,13 +9,11 @@ export function AppHeader() {
           <Scale className="w-5 h-5 text-white" />
         </div>
         <h1 className="text-xl font-semibold text-slate-800">LegalDraft Pro</h1>
+        <span className="text-sm text-slate-500 bg-orange-100 px-2 py-1 rounded-full">MVP</span>
       </div>
       
-      <div className="flex items-center gap-4 text-sm text-slate-600">
-        <span>Welcome back, Sarah</span>
-        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-          <span className="text-blue-600 font-medium">S</span>
-        </div>
+      <div className="text-sm text-slate-600">
+        <span>Legal Document Assistant</span>
       </div>
     </header>
   );

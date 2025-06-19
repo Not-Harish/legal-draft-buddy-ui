@@ -1,8 +1,9 @@
 
 import { useState } from "react";
-import { Bot, User, Paperclip } from "lucide-react";
+import { Bot, User, Paperclip, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { chatAPI } from "@/services/api";
 
 interface Message {
   id: string;
@@ -12,47 +13,95 @@ interface Message {
 }
 
 export function ChatPanel() {
-  const [messages] = useState<Message[]>([
+  const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
       type: 'assistant',
       content: "Hello! I'm here to help you draft legal documents. What type of document would you like to create today?",
-      timestamp: '10:30 AM'
-    },
-    {
-      id: '2',
-      type: 'user',
-      content: "I need to create a rental agreement for my property. It's a 2-bedroom apartment.",
-      timestamp: '10:31 AM'
-    },
-    {
-      id: '3',
-      type: 'assistant',
-      content: "Perfect! I'll help you create a comprehensive rental agreement. Let me start drafting the basic structure with standard clauses. What's the rental amount and lease duration?",
-      timestamp: '10:31 AM'
-    },
-    {
-      id: '4',
-      type: 'user',
-      content: "Monthly rent is $2,400 and I want a 12-month lease starting January 1st, 2024.",
-      timestamp: '10:32 AM'
-    },
-    {
-      id: '5',
-      type: 'assistant',
-      content: "Excellent! I'm now drafting your rental agreement with those details. You can see the document taking shape in the editor on the right. Feel free to ask me to modify any clauses or add specific terms.",
-      timestamp: '10:33 AM'
+      timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
     }
   ]);
 
   const [newMessage, setNewMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  const sendMessage = async () => {
+    if (!newMessage.trim() || isLoading) return;
+
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      type: 'user',
+      content: newMessage,
+      timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    setNewMessage('');
+    setIsLoading(true);
+
+    try {
+      const conversationHistory = messages.map(msg => ({
+        role: msg.type === 'user' ? 'user' as const : 'assistant' as const,
+        content: msg.content
+      }));
+
+      const response = await chatAPI.sendMessage(newMessage, conversationHistory);
+      
+      const assistantMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        type: 'assistant',
+        content: response.message,
+        timestamp: response.timestamp
+      };
+
+      setMessages(prev => [...prev, assistantMessage]);
+    } catch (error) {
+      console.error('Failed to send message:', error);
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        type: 'assistant',
+        content: "Sorry, I'm having trouble responding right now. Please try again.",
+        timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  };
+
+  const clearChat = () => {
+    setMessages([{
+      id: '1',
+      type: 'assistant',
+      content: "Hello! I'm here to help you draft legal documents. What type of document would you like to create today?",
+      timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+    }]);
+  };
 
   return (
     <div className="flex flex-col h-full">
       {/* Chat Header */}
-      <div className="p-4 border-b border-slate-100">
-        <h2 className="font-semibold text-slate-800">Legal Assistant</h2>
-        <p className="text-sm text-slate-500">Drafting your rental agreement...</p>
+      <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+        <div>
+          <h2 className="font-semibold text-slate-800">Legal Assistant</h2>
+          <p className="text-sm text-slate-500">Ready to help with your documents...</p>
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={clearChat}
+          className="text-slate-500 hover:text-slate-700"
+          title="Clear chat"
+        >
+          <Trash2 className="w-4 h-4" />
+        </Button>
       </div>
 
       {/* Messages */}
@@ -86,6 +135,19 @@ export function ChatPanel() {
             </div>
           </div>
         ))}
+        
+        {isLoading && (
+          <div className="flex gap-3">
+            <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-slate-100">
+              <Bot className="w-4 h-4 text-slate-600" />
+            </div>
+            <div className="max-w-[80%]">
+              <div className="rounded-2xl px-4 py-3 bg-slate-50 text-slate-800">
+                <p className="text-sm">Thinking...</p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Input Area */}
@@ -95,8 +157,10 @@ export function ChatPanel() {
             <Input
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
+              onKeyPress={handleKeyPress}
               placeholder="Ask me to modify the document or add specific clauses..."
               className="pr-12 rounded-full border-slate-200 focus:border-blue-300"
+              disabled={isLoading}
             />
             <Button
               size="sm"
@@ -106,7 +170,11 @@ export function ChatPanel() {
               <Paperclip className="w-4 h-4 text-slate-500" />
             </Button>
           </div>
-          <Button className="rounded-full bg-blue-600 hover:bg-blue-700 px-6">
+          <Button 
+            className="rounded-full bg-blue-600 hover:bg-blue-700 px-6"
+            onClick={sendMessage}
+            disabled={isLoading || !newMessage.trim()}
+          >
             Send
           </Button>
         </div>
