@@ -44,15 +44,24 @@ export function ChatPanel() {
       role: msg.type === 'user' ? 'user' as const : 'assistant' as const,
       content: msg.content
     }));
-    console.log("🚀 Sending message:", newMessage);
     const responses = await chatAPI.sendMessage(newMessage, conversationHistory);
+    console.log("🤖 Assistant responses:", responses);
 
-    const assistantMessages: Message[] = responses.map((res: any, index: number) => ({
-      id: `${Date.now()}-${index}`,
+    // Split long messages by sections (double newlines or "\n<Section>:\n")
+const assistantMessages: Message[] = [];
+
+responses.forEach((res: any, index: number) => {
+  const chunks = res.message.split(/\n(?=\w+:\n)/g); // splits on new sections
+  chunks.forEach((chunk: string, idx: number) => {
+    assistantMessages.push({
+      id: `${Date.now()}-${index}-${idx}`,
       type: 'assistant',
-      content: res.message,
-      timestamp: res.timestamp || new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
-    }));
+      content: chunk.trim(),
+      timestamp: res.timestamp || new Date().toLocaleTimeString()
+    });
+  });
+});
+
 
     setMessages(prev => [...prev, ...assistantMessages]);
   } catch (error) {
