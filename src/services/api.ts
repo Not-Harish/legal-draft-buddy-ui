@@ -1,4 +1,3 @@
-
 interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
@@ -11,21 +10,19 @@ interface ChatResponse {
 
 interface DocumentResponse {
   content: string;
-  sections: string[];
 }
 
+const BASE_URL = "http://localhost:5000/api"; // change to your deployment URL if hosted
+
 export const chatAPI = {
-  sendMessage: async (message: string, conversationHistory: ChatMessage[]): Promise<ChatResponse> => {
-    // Simulate API call - replace with your actual endpoint
-    const response = await fetch('/api/chat', {
+  sendMessage: async (
+    message: string,
+    conversationHistory: ChatMessage[]
+  ): Promise<ChatResponse[]> => {
+    const response = await fetch('http://localhost:5000/api/send-message', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        message,
-        history: conversationHistory
-      }),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message, history: conversationHistory }),
     });
 
     if (!response.ok) {
@@ -33,22 +30,18 @@ export const chatAPI = {
     }
 
     const data = await response.json();
-    return data;
+    return data as ChatResponse[]; // ✅ now typed as an array
   }
 };
 
 export const documentAPI = {
-  generateDocument: async (prompt: string, currentContent?: string): Promise<DocumentResponse> => {
-    // Simulate API call - replace with your actual endpoint
-    const response = await fetch('/api/document', {
+  generateDocument: async (instruction: string, content?: string): Promise<DocumentResponse> => {
+    const response = await fetch(`${BASE_URL}/generate-document`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        prompt,
-        currentContent
-      }),
+      body: JSON.stringify({ instruction, content }),
     });
 
     if (!response.ok) {
@@ -56,6 +49,6 @@ export const documentAPI = {
     }
 
     const data = await response.json();
-    return data;
-  }
+    return data as DocumentResponse;
+  },
 };

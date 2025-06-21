@@ -26,48 +26,49 @@ export function ChatPanel() {
   const [isLoading, setIsLoading] = useState(false);
 
   const sendMessage = async () => {
-    if (!newMessage.trim() || isLoading) return;
+  if (!newMessage.trim() || isLoading) return;
 
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      type: 'user',
-      content: newMessage,
+  const userMessage: Message = {
+    id: Date.now().toString(),
+    type: 'user',
+    content: newMessage,
+    timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+  };
+
+  setMessages(prev => [...prev, userMessage]);
+  setNewMessage('');
+  setIsLoading(true);
+
+  try {
+    const conversationHistory = messages.map(msg => ({
+      role: msg.type === 'user' ? 'user' as const : 'assistant' as const,
+      content: msg.content
+    }));
+    console.log("🚀 Sending message:", newMessage);
+    const responses = await chatAPI.sendMessage(newMessage, conversationHistory);
+
+    const assistantMessages: Message[] = responses.map((res: any, index: number) => ({
+      id: `${Date.now()}-${index}`,
+      type: 'assistant',
+      content: res.message,
+      timestamp: res.timestamp || new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+    }));
+
+    setMessages(prev => [...prev, ...assistantMessages]);
+  } catch (error) {
+    console.error('Failed to send message:', error);
+    const errorMessage: Message = {
+      id: (Date.now() + 1).toString(),
+      type: 'assistant',
+      content: "Sorry, I'm having trouble responding right now. Please try again.",
       timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
     };
+    setMessages(prev => [...prev, errorMessage]);
+  } finally {
+    setIsLoading(false);
+  }
+};
 
-    setMessages(prev => [...prev, userMessage]);
-    setNewMessage('');
-    setIsLoading(true);
-
-    try {
-      const conversationHistory = messages.map(msg => ({
-        role: msg.type === 'user' ? 'user' as const : 'assistant' as const,
-        content: msg.content
-      }));
-
-      const response = await chatAPI.sendMessage(newMessage, conversationHistory);
-      
-      const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        type: 'assistant',
-        content: response.message,
-        timestamp: response.timestamp
-      };
-
-      setMessages(prev => [...prev, assistantMessage]);
-    } catch (error) {
-      console.error('Failed to send message:', error);
-      const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        type: 'assistant',
-        content: "Sorry, I'm having trouble responding right now. Please try again.",
-        timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
-      };
-      setMessages(prev => [...prev, errorMessage]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
